@@ -56,7 +56,7 @@ SPI_HandleTypeDef hspi2;
 
 TIM_HandleTypeDef htim4;
 	
-const uint64_t Address_NodeRoom = 0x1122334411;
+const uint64_t Address_NodeRoom = 0x1122334422;
 
 uint16_t Buffer_ADC;
 
@@ -109,44 +109,51 @@ int main(void)
 	
 	NRF24_Begin(hspi2, GPIOA, SPI1_CS_Pin, SPI1_CE_Pin);
 	NRF24_OpenWritingPipe(Address_NodeRoom);
-	NRF24_SetPALevel(RF24_PA_m6dB);
-	NRF24_SetDataRate(RF24_1MBPS);
+	NRF24_SetPALevel(RF24_PA_0dB);
+	NRF24_SetDataRate(RF24_250KBPS);
 	NRF24_SetChannel(52);
+	NRF24_EnableDynamicPayloads();
 	NRF24_SetAutoAck(true);
 	NRF24_StartListening();
 	
   /* USER CODE END 2 */
-	lastDelay = HAL_GetTick();
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   
   while (1)
   {
 	  
-	if( (uint32_t)(HAL_GetTick() - lastDelay) > 750)
+	if( (uint32_t)(HAL_GetTick() - lastDelay) > 5000)
 	{
 		bool b_Status_DHT;
 		Data_Air_t Value_Air;
-		Value_Air.ID = 'B';
+		Value_Air.ID = 'C';
 		// Read value temperature and humidity from DHT22
 		b_Status_DHT = DHT22_Start();
-		if(b_Status_DHT)
-		{
+		if(b_Status_DHT){
 			DHT22_Read();
 			Value_Air.nhietDo = DHT22_Temperature();
 			Value_Air.doAm = DHT22_Humidity();
+		} else {
+			Value_Air.nhietDo = -99.0f;
+			Value_Air.doAm = -99.0f;
 		}
 		Value_Air.CO2 = MQ135_GetPPM();
 		// Send data from node 1.1 to node 1
 		NRF24_StopListening();
-		NRF24_Write(&Value_Air, 32);
+		NRF24_Write(&Value_Air, sizeof(Value_Air));
 		NRF24_StartListening();
 		lastDelay = HAL_GetTick();
+	}
+	if(Buffer_ADC > 2000) {
+		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+	} else {
+		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
 	}
 	  
 	if(NRF24_Available()){
 		NRF24_Read(buffer,32);
-		if(buffer[0] % 2 == 0){
+		if(buffer[1] % 2 == 0){
 			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
 		} else {
 			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
@@ -365,6 +372,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, SPI1_CS_Pin|SPI1_CE_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, Buzzer_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : SPI1_CS_Pin SPI1_CE_Pin */
   GPIO_InitStruct.Pin = SPI1_CS_Pin|SPI1_CE_Pin;
@@ -374,11 +382,11 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
   
 
-  /*Configure GPIO pin : DHT22_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  /*Configure GPIO pin : Buzzer */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }
 

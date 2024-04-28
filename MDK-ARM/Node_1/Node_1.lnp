@@ -24,6 +24,7 @@
 "node_1\dht22.o"
 "node_1\mq135.o"
 "node_1\my_nrf24.o"
+"node_1\rfid_rcc522.o"
 --strict --scatter "Node_1\Node_1.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
